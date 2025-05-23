@@ -17,7 +17,7 @@ TIMESTEPS_PER_BATCH = 2048
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Make QWOP environment
-env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver")
+env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=30, success_reward=100)
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
@@ -115,7 +115,7 @@ def ppo_train(model, optimizer):
         target_y = -3.5
         y_reward = -abs(head_y - target_y)
 
-        reward = torso_velx * 0.05
+        reward += torso_velx * 0.005
 
         total_reward += reward
 
@@ -180,8 +180,13 @@ model = ActorCritic().to(device)
 optimizer = optim.Adam(model.parameters(), lr=LR)
 reward_history = []
 
+# model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
+# model.eval()
+# print("Loaded model weights from checkpoint.")
 
-for i in range(5000):  # ~1000 updates
+
+
+for i in range(10000):  # ~10000 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
     print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
