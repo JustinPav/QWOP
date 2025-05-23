@@ -4,12 +4,13 @@ import torch.optim as optim
 import gymnasium as gym
 import qwop_gym
 import numpy as np
+import time
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Make QWOP environment
-env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver")
+env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", stat_in_browser=True)
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
@@ -83,3 +84,4 @@ while not done:
     obs, reward, terminated, truncated, _ = env.step(action)
     done = terminated or truncated
     env.render()
+    time.sleep(0.01)

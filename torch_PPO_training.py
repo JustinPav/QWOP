@@ -4,6 +4,7 @@ import torch.optim as optim
 import gymnasium as gym
 import qwop_gym
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Hyperparameters
 GAMMA = 0.99
@@ -97,6 +98,7 @@ def compute_returns(rewards, masks, values, gamma):
 def ppo_train(model, optimizer):
     obs_buffer, act_buffer, logprob_buffer, rew_buffer, val_buffer, done_buffer = [], [], [], [], [], []
 
+    total_reward = 0.0
     obs, _ = env.reset()
     for _ in range(TIMESTEPS_PER_BATCH):
         action, logprob = model.act(obs)
@@ -105,7 +107,17 @@ def ppo_train(model, optimizer):
         next_obs, reward, terminated, truncated, _ = env.step(action)
         
         # Adjust reward from QWOP environment
-        reward += 0
+        torso_n_velx = obs[3]
+        torso_velx = env.vel_x.denormalize(torso_n_velx)
+
+        head_n_y = obs[6]
+        head_y = env.pos_y.denormalize(head_n_y)
+        target_y = -3.5
+        y_reward = -abs(head_y - target_y)
+
+        reward = torso_velx * 0.05
+
+        total_reward += reward
 
         done = terminated or truncated
 
@@ -159,15 +171,35 @@ def ppo_train(model, optimizer):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+    
+    return total_reward
 
 
 # Train
 model = ActorCritic().to(device)
 optimizer = optim.Adam(model.parameters(), lr=LR)
+reward_history = []
 
-for i in range(1000):  # ~1000 updates
-    ppo_train(model, optimizer)
-    print(f"Update {i+1} done.")
+
+for i in range(5000):  # ~1000 updates
+    episode_reward = ppo_train(model, optimizer)
+    reward_history.append(episode_reward)
+    print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
+
+    # Plot every 10 updates
+    if (i + 1) % 10 == 0:
+        plt.figure(figsize=(10, 5))
+        plt.plot(reward_history, label="Episode Reward")
+        plt.xlabel("Update")
+        plt.ylabel("Reward")
+        plt.title("Reward Progress Over Time")
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("reward_progress.png")
+        plt.close()
+
 
 # Save model
 torch.save(model.state_dict(), "ppo_qwop_torch.pth")
+print("Model saved. Press Ctrl+C to exit.")
