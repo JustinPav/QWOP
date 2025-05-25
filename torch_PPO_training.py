@@ -17,7 +17,7 @@ TIMESTEPS_PER_BATCH = 2048
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Make QWOP environment
-env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=20, success_reward=200, time_cost_mult=15)
+env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=20, success_reward=200, time_cost_mult=12)
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
@@ -115,7 +115,13 @@ def ppo_train(model, optimizer):
         target_y = -3.5
         y_reward = -abs(head_y - target_y)
 
+        head_n_x = obs[5]
+        head_x = env.pos_x.denormalize(head_n_x)
+        
         reward += torso_velx * 0.01
+
+        if head_x > 510:
+            reward += 1
 
         total_reward += reward
 
@@ -180,16 +186,14 @@ model = ActorCritic().to(device)
 optimizer = optim.Adam(model.parameters(), lr=LR)
 reward_history = []
 
-model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
-model.eval()
-print("Loaded model weights from checkpoint.")
-
-
+# model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
+# model.eval()
+# print("Loaded model weights from checkpoint.")
 
 for i in range(10000):  # ~10000 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
-    print(f"Update {i+10001} done. Episode reward: {episode_reward:.2f}")
+    print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
 
     # Plot every 10 updates
     if (i + 1) % 10 == 0:
@@ -201,8 +205,28 @@ for i in range(10000):  # ~10000 updates
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
-        plt.savefig("reward_progress_2.png")
+        plt.savefig("reward_progress.png")
         plt.close()
+
+
+# for i in range(10000):  # ~10000 updates
+#     episode_reward = ppo_train(model, optimizer)
+#     reward_history.append(episode_reward)
+#     print(f"Update {i+10001} done. Episode reward: {episode_reward:.2f}")
+
+#     # Plot every 10 updates
+#     if (i + 1) % 10 == 0:
+#         plt.figure(figsize=(10, 5))
+#         plt.plot(reward_history, label="Episode Reward")
+#         plt.xlabel("Update")
+#         plt.ylabel("Reward")
+#         plt.title("Reward Progress Over Time")
+#         plt.grid(True)
+#         plt.legend()
+#         plt.tight_layout()
+#         plt.savefig("reward_progress_2.png")
+#         plt.close()
+
 
 
 # Save model
