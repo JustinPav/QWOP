@@ -17,7 +17,7 @@ TIMESTEPS_PER_BATCH = 2048
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Make QWOP environment
-env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=30, success_reward=100)
+env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=20, success_reward=100)
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
@@ -115,7 +115,7 @@ def ppo_train(model, optimizer):
         target_y = -3.5
         y_reward = -abs(head_y - target_y)
 
-        reward += torso_velx * 0.005
+        reward += torso_velx * 0.01
 
         total_reward += reward
 
