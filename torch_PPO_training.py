@@ -180,16 +180,18 @@ model = ActorCritic().to(device)
 optimizer = optim.Adam(model.parameters(), lr=LR)
 reward_history = []
 
-# model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
-# model.eval()
-# print("Loaded model weights from checkpoint.")
+
+# Uncomment to load from a checkpoint. Comment out to start fresh.
+model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
+model.eval()
+print("Loaded model weights from checkpoint.")
 
 
 
-for i in range(10000):  # ~10000 updates
+for i in range(1000):  # ~10000 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
-    print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
+    print(f"Update {i+10001} done. Episode reward: {episode_reward:.2f}")
 
     # Plot every 10 updates
     if (i + 1) % 10 == 0:
