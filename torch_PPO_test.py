@@ -85,4 +85,5 @@ while not done:
     done = terminated or truncated
     env.render()
     time.sleep(0.01)
+time.sleep(5)  # Pause to view the final state
 env.close()
