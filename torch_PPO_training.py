@@ -17,7 +17,7 @@ TIMESTEPS_PER_BATCH = 2048
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Make QWOP environment
-env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=20, success_reward=200, time_cost_mult=12)
+env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=10, success_reward=50, time_cost_mult=0)
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
@@ -106,26 +106,23 @@ def ppo_train(model, optimizer):
 
         next_obs, reward, terminated, truncated, _ = env.step(action)
         
+        done = terminated or truncated
+
         # Adjust reward from QWOP environment
-        torso_n_velx = obs[3]
+        torso_n_velx = next_obs[3]
         torso_velx = env.vel_x.denormalize(torso_n_velx)
 
-        head_n_y = obs[6]
+        head_n_y = next_obs[6]
         head_y = env.pos_y.denormalize(head_n_y)
         target_y = -3.5
         y_reward = -abs(head_y - target_y)
 
-        head_n_x = obs[5]
+        head_n_x = next_obs[5]
         head_x = env.pos_x.denormalize(head_n_x)
         
-        reward += torso_velx * 0.01
-
-        if head_x > 510:
-            reward += 1
+        reward += 0
 
         total_reward += reward
-
-        done = terminated or truncated
 
         obs_buffer.append(obs)
         act_buffer.append(action)
@@ -190,7 +187,7 @@ reward_history = []
 # model.eval()
 # print("Loaded model weights from checkpoint.")
 
-for i in range(10000):  # ~10000 updates
+for i in range(2000):  # ~10000 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
     print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
