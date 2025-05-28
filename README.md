@@ -87,13 +87,19 @@ You should see the QWOP game window appear and be able to play.
 
 ## Usage
 
-To train the model, run the following command:
+To train the model, run one of the following commands:
+
+1. Runs using the standard reward path in the environment but will result in knee sliding
 ```bash
 python ppo_training.py
 ```
 
+2. Requires longer training time but will use our custom reward path and will attempt to run faster and more upright.
+```bash
+python torch_PPO_training.py
+```
 This will set up the QWOP environment, train the PPO model for 100,000 timesteps, and save the trained model to a file named `ppo_qwop`.
 
 ## Testing the Model
 
-After training, the model can be tested by running the `ppo_test.py` script. The model will predict actions based on the current observations and render the game environment.
+After training, the model can be tested by running the `ppo_test.py` or `torch_PPO_test.py` script. The model will predict actions based on the current observations and render the game environment.
