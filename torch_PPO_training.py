@@ -188,10 +188,10 @@ print("Loaded model weights from checkpoint.")
 
 
 
-for i in range(2000):  # ~10000 updates
+for i in range(24000):  # ~10000 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
-    print(f"Update {i+36001} done. Episode reward: {episode_reward:.2f}")
+    print(f"Update {i+38001} done. Episode reward: {episode_reward:.2f}")
 
     # Plot every 10 updates
     if (i + 1) % 10 == 0:
