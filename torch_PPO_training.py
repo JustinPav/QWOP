@@ -12,12 +12,12 @@ LR = 1e-4
 EPS_CLIP = 0.2
 K_EPOCHS = 6
 BATCH_SIZE = 128
-TIMESTEPS_PER_BATCH = 16384
+TIMESTEPS_PER_BATCH = 8192
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Make QWOP environment
-env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=30, success_reward=100)
+env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=20, success_reward=100)
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
@@ -119,10 +119,10 @@ def ppo_train(model, optimizer):
         target_y = -3.5
         y_reward = -abs(head_y - target_y)
 
-        reward += torso_velx * 0.005
+        reward += torso_velx * 0.01
 
         if torso_x > 600 and not hurdle_passed:
-            reward += 50
+            reward += 10
             hurdle_passed = True
 
         total_reward += reward
@@ -190,19 +190,18 @@ optimizer = optim.Adam(model.parameters(), lr=LR)
 reward_history = []
 
 
-# # Uncomment to load from a checkpoint. Comment out to start fresh.
-# checkpoint = torch.load("ppo_qwop_torch_checkpoint.pth")
-# model.load_state_dict(checkpoint['model_state_dict'])
-# optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-# model.eval()
+# Uncomment to load from a checkpoint. Comment out to start fresh.
+checkpoint = torch.load("ppo_qwop_torch_checkpoint.pth")
+model.load_state_dict(checkpoint['model_state_dict'])
+optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+model.eval()
 
 
 
-
-for i in range(10):  # ~10000 updates
+for i in range(250):  # ~approx 7 min for 50 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
-    print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
+    print(f"Update {i+251} done. Episode reward: {episode_reward:.2f}")
 
     # Plot every 10 updates
     if (i + 1) % 10 == 0:
