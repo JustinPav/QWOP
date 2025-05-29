@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 
 # Hyperparameters
 GAMMA = 0.99
-LR = 3e-4
+LR = 1e-4
 EPS_CLIP = 0.2
-K_EPOCHS = 4
-BATCH_SIZE = 64
-TIMESTEPS_PER_BATCH = 2048
+K_EPOCHS = 6
+BATCH_SIZE = 128
+TIMESTEPS_PER_BATCH = 16384
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -100,6 +100,7 @@ def ppo_train(model, optimizer):
 
     total_reward = 0.0
     obs, _ = env.reset()
+    hurdle_passed = False
     for _ in range(TIMESTEPS_PER_BATCH):
         action, logprob = model.act(obs)
         val = model(torch.tensor(obs, dtype=torch.float32).to(device))[1].item()
@@ -110,12 +111,19 @@ def ppo_train(model, optimizer):
         torso_n_velx = obs[3]
         torso_velx = env.vel_x.denormalize(torso_n_velx)
 
+        torso_n_x = obs[0]
+        torso_x = env.pos_x.denormalize(torso_n_x)
+
         head_n_y = obs[6]
         head_y = env.pos_y.denormalize(head_n_y)
         target_y = -3.5
         y_reward = -abs(head_y - target_y)
 
         reward += torso_velx * 0.005
+
+        if torso_x > 600 and not hurdle_passed:
+            reward += 50
+            hurdle_passed = True
 
         total_reward += reward
 
@@ -131,6 +139,7 @@ def ppo_train(model, optimizer):
         obs = next_obs
         if done:
             obs, _ = env.reset()
+            hurdle_passed = False
 
     val_buffer.append(model(torch.tensor(obs, dtype=torch.float32).to(device))[1].item())
     returns = compute_returns(rew_buffer, done_buffer, val_buffer, GAMMA)
@@ -181,17 +190,19 @@ optimizer = optim.Adam(model.parameters(), lr=LR)
 reward_history = []
 
 
-# Uncomment to load from a checkpoint. Comment out to start fresh.
-model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
-model.eval()
-print("Loaded model weights from checkpoint.")
+# # Uncomment to load from a checkpoint. Comment out to start fresh.
+# checkpoint = torch.load("ppo_qwop_torch_checkpoint.pth")
+# model.load_state_dict(checkpoint['model_state_dict'])
+# optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+# model.eval()
 
 
 
-for i in range(18000):  # ~10000 updates
+
+for i in range(10):  # ~10000 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
-    print(f"Update {i+38001} done. Episode reward: {episode_reward:.2f}")
+    print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
 
     # Plot every 10 updates
     if (i + 1) % 10 == 0:
@@ -208,5 +219,9 @@ for i in range(18000):  # ~10000 updates
 
 
 # Save model
-torch.save(model.state_dict(), "ppo_qwop_torch.pth")
+torch.save({
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+}, "ppo_qwop_torch_checkpoint.pth")
+
 print("Model saved. Press Ctrl+C to exit.")

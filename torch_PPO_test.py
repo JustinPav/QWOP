@@ -6,6 +6,12 @@ import qwop_gym
 import numpy as np
 import time
 
+GAMMA = 0.99
+LR = 1e-4
+EPS_CLIP = 0.2
+K_EPOCHS = 6
+BATCH_SIZE = 128
+TIMESTEPS_PER_BATCH = 16384
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -14,6 +20,7 @@ env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/b
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
+
 
 # Neural Network for Policy and Value Function
 class ActorCritic(nn.Module):
@@ -74,8 +81,12 @@ class ActorCritic(nn.Module):
         return log_probs, values, entropy
 
 model = ActorCritic().to(device)
-model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
-model.eval()
+optimizer = optim.Adam(model.parameters(), lr=LR)
+checkpoint = torch.load("ppo_qwop_torch_checkpoint.pth")
+model.load_state_dict(checkpoint['model_state_dict'])
+optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+model.eval() 
+
 
 success = False
 while not success:
