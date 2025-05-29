@@ -198,7 +198,7 @@ model.eval()
 
 
 
-for i in range(250):  # ~approx 7 min for 50 updates
+for i in range(3750):  # ~approx 7 min for 50 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
     print(f"Update {i+251} done. Episode reward: {episode_reward:.2f}")
