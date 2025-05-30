@@ -81,11 +81,8 @@ class ActorCritic(nn.Module):
         return log_probs, values, entropy
 
 model = ActorCritic().to(device)
-optimizer = optim.Adam(model.parameters(), lr=LR)
-checkpoint = torch.load("ppo_qwop_torch_checkpoint.pth")
-model.load_state_dict(checkpoint['model_state_dict'])
-optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-model.eval() 
+model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
+model.eval()
 
 
 success = False
@@ -100,7 +97,7 @@ while not success:
         torso_n_x = obs[0]
         torso_x = env.pos_x.denormalize(torso_n_x)
         time.sleep(0.01)
-    if torso_x > 1000 and done:
+    if torso_x > 990 and done:
         success = True
         print("Success! Torso X:", torso_x)
         break
