@@ -7,17 +7,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Hyperparameters
-GAMMA = 0.999
-LR = 3e-4
+GAMMA = 0.99
+LR = 8e-4
 EPS_CLIP = 0.2
-K_EPOCHS = 4
-BATCH_SIZE = 64
-TIMESTEPS_PER_BATCH = 2048
+K_EPOCHS = 6
+BATCH_SIZE = 128
+TIMESTEPS_PER_BATCH = 8192
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Make QWOP environment
-env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=10, success_reward=50, time_cost_mult=0)
+env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/bin/chromedriver", failure_cost=20, success_reward=100)
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
@@ -100,6 +100,7 @@ def ppo_train(model, optimizer):
 
     total_reward = 0.0
     obs, _ = env.reset()
+    hurdle_passed = False
     for _ in range(TIMESTEPS_PER_BATCH):
         action, logprob = model.act(obs)
         val = model(torch.tensor(obs, dtype=torch.float32).to(device))[1].item()
@@ -112,15 +113,20 @@ def ppo_train(model, optimizer):
         torso_n_velx = next_obs[3]
         torso_velx = env.vel_x.denormalize(torso_n_velx)
 
-        head_n_y = next_obs[6]
+        torso_n_x = obs[0]
+        torso_x = env.pos_x.denormalize(torso_n_x)
+
+        head_n_y = obs[6]
         head_y = env.pos_y.denormalize(head_n_y)
-        target_y = -3.5
+        target_y = -3.6
         y_reward = -abs(head_y - target_y)
 
-        head_n_x = next_obs[5]
-        head_x = env.pos_x.denormalize(head_n_x)
-        
-        reward += 0
+        reward += torso_velx * 0.01
+        reward += y_reward * 0.01
+
+        if torso_x > 600 and not hurdle_passed:
+            reward += 10
+            hurdle_passed = True
 
         total_reward += reward
 
@@ -134,6 +140,7 @@ def ppo_train(model, optimizer):
         obs = next_obs
         if done:
             obs, _ = env.reset()
+            hurdle_passed = False
 
     val_buffer.append(model(torch.tensor(obs, dtype=torch.float32).to(device))[1].item())
     returns = compute_returns(rew_buffer, done_buffer, val_buffer, GAMMA)
@@ -183,14 +190,19 @@ model = ActorCritic().to(device)
 optimizer = optim.Adam(model.parameters(), lr=LR)
 reward_history = []
 
-# model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
+
+# # Uncomment to load from a checkpoint. Comment out to start fresh.
+# checkpoint = torch.load("ppo_qwop_torch_checkpoint.pth")
+# model.load_state_dict(checkpoint['model_state_dict'])
+# optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 # model.eval()
-# print("Loaded model weights from checkpoint.")
+
+
 
 for i in range(2000):  # ~10000 updates
     episode_reward = ppo_train(model, optimizer)
     reward_history.append(episode_reward)
-    print(f"Update {i+1} done. Episode reward: {episode_reward:.2f}")
+    print(f"Update {i+36001} done. Episode reward: {episode_reward:.2f}")
 
     # Plot every 10 updates
     if (i + 1) % 10 == 0:
@@ -227,5 +239,9 @@ for i in range(2000):  # ~10000 updates
 
 
 # Save model
-torch.save(model.state_dict(), "ppo_qwop_torch.pth")
+torch.save({
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+}, "ppo_qwop_torch_checkpoint.pth")
+
 print("Model saved. Press Ctrl+C to exit.")

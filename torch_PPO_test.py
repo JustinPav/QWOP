@@ -6,6 +6,12 @@ import qwop_gym
 import numpy as np
 import time
 
+GAMMA = 0.99
+LR = 1e-4
+EPS_CLIP = 0.2
+K_EPOCHS = 6
+BATCH_SIZE = 128
+TIMESTEPS_PER_BATCH = 16384
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -14,6 +20,7 @@ env = gym.make("QWOP-v1", browser="/usr/bin/google-chrome", driver="/usr/local/b
 obs_dim = env.observation_space.shape[0]
 is_discrete = isinstance(env.action_space, gym.spaces.Discrete)
 act_dim = env.action_space.n if is_discrete else env.action_space.shape[0]
+
 
 # Neural Network for Policy and Value Function
 class ActorCritic(nn.Module):
@@ -77,12 +84,20 @@ model = ActorCritic().to(device)
 model.load_state_dict(torch.load("ppo_qwop_torch.pth"))
 model.eval()
 
-obs, _ = env.reset()
-done = False
-while not done:
-    action, _ = model.act(obs)
-    obs, reward, terminated, truncated, _ = env.step(action)
-    done = terminated or truncated
-    env.render()
-    time.sleep(0.01)
-env.close()
+
+success = False
+while not success:
+    obs, _ = env.reset()
+    done = False
+    while not done:
+        action, _ = model.act(obs)
+        obs, reward, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        env.render()
+        torso_n_x = obs[0]
+        torso_x = env.pos_x.denormalize(torso_n_x)
+        time.sleep(0.01)
+    if torso_x > 990 and done:
+        success = True
+        print("Success! Torso X:", torso_x)
+        break
