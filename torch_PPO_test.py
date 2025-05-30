@@ -96,7 +96,7 @@ while not success:
         env.render()
         torso_n_x = obs[0]
         torso_x = env.pos_x.denormalize(torso_n_x)
-        time.sleep(0.01)
+        # time.sleep(0.01)
     if torso_x > 990 and done:
         success = True
         print("Success! Torso X:", torso_x)

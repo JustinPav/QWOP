@@ -93,13 +93,14 @@ To train the model, run one of the following commands:
 ```bash
 python ppo_training.py
 ```
+This will set up the QWOP environment, train the standard PPO model and save the trained model to a file named `ppo_qwop.zip`.
 
 2. Requires longer training time but will use our custom reward path and will attempt to run faster and more upright.
 ```bash
 python torch_PPO_training.py
 ```
-This will set up the QWOP environment, train the PPO model for 100,000 timesteps, and save the trained model to a file named `ppo_qwop`.
+This will set up the QWOP environment, train our PPO model with custom rewards and save the trained model to a file named `ppo_qwop_torch.pth`.
 
 ## Testing the Model
 
-After training, the model can be tested by running the `ppo_test.py` or `torch_PPO_test.py` script. The model will predict actions based on the current observations and render the game environment.
+After training, the model can be tested by running the `ppo_test.py` or `torch_PPO_test.py` script which will load one of the two previously saved models respectively. `torch_PPO_test.py` runs the model multiple times until the game completes as it is less consistent due to it trying to run at greater velocities. The model will predict actions based on the current observations and render the game environment.
