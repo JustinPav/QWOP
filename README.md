@@ -1,5 +1,8 @@
 # QWOP Reinforcement Learning
 
+FINAL DEMONSTRATION VIDEO
+https://www.youtube.com/embed/YCh0_Ivs6iI
+
 This project implements a reinforcement learning model using the Proximal Policy Optimization (PPO) algorithm from the Stable Baselines3 library. The model is trained to play the QWOP game, a challenging physics-based game where players control a runner's legs to navigate a track.
 
 ## Full Setup Guide: qwop-gym on Ubuntu 22.04
